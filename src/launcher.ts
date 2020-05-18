@@ -1,6 +1,6 @@
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
-const { Clutter, GLib, Meta, St } = imports.gi;
+const { Clutter, GLib, Meta, St, Gio } = imports.gi;
 const { spawnCommandLine } = imports.misc.util;
 
 const { evaluate } = Me.imports.math.math;
@@ -22,6 +22,7 @@ import type { AppInfo } from './app_info';
 const { OK } = result;
 
 const HOME_DIR: string = GLib.get_home_dir();
+const OS_RELEASE: string = GLib.get_os_info("NAME");
 
 const LIST_MAX = 8;
 const ICON_SIZE = 34;
@@ -122,11 +123,18 @@ export class Launcher extends search.Search {
                 } else {
                     const [where, app] = selection;
                     const generic = app.generic_name();
+                    let giconDefault = null;
+
+                    if (OS_RELEASE.toLowerCase() === "pop!_os") {
+                        giconDefault = Gio.icon_new_for_string('application-default-symbolic');
+                    } else {
+                        giconDefault = Gio.icon_new_for_string('application-x-executable-symbolic');
+                    }
 
                     data = [
                         generic ? `${generic} (${app.name()}) [${where}]` : `${app.name()} [${where}]`,
                         new St.Icon({
-                            icon_name: 'application-default-symbolic',
+                            gicon: giconDefault,
                             icon_size: ICON_SIZE / 2,
                             style_class: "pop-shell-search-cat"
                         }),
@@ -218,7 +226,7 @@ export class Launcher extends search.Search {
                 for (const result of app_info.load_desktop_entries(path)) {
                     if (result.kind == OK) {
                         const value = result.value;
-                        log.info(value.display());
+                        // log.info(value.display());
                         this.desktop_apps.push([where, value]);
                     } else {
                         const why = result.value;
